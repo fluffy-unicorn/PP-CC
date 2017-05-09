@@ -1,5 +1,6 @@
 package pp.block2.cc.ll;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -11,6 +12,7 @@ import pp.block2.cc.NonTerm;
 import pp.block2.cc.ParseException;
 import pp.block2.cc.Parser;
 import pp.block2.cc.Symbol;
+import pp.block2.cc.SymbolFactory;
 import pp.block2.cc.Term;
 
 /** Generic table-driven LL(1)-parser. */
@@ -26,6 +28,7 @@ public class GenericLLParser implements Parser {
 	/** Token list of the currently parsed input. */
 	private List<? extends Token> tokens;
 
+	private SymbolFactory fact;
 
 	public GenericLLParser(Grammar g) {
 		this.g = g;
@@ -36,6 +39,7 @@ public class GenericLLParser implements Parser {
 	public AST parse(Lexer lexer) throws ParseException {
 		this.tokens = lexer.getAllTokens();
 		this.index = 0;
+		this.fact = new SymbolFactory(lexer.getClass());
 		return parse(this.g.getStart());
 	}
 	
@@ -52,9 +56,17 @@ public class GenericLLParser implements Parser {
 	 * because the token stream does not contain the expected symbols
 	 */
 	private AST parse(Symbol symb) throws ParseException {
-		return null; // TODO fill in
+		AST result;
+		if(g.getTerminals().contains(symb)) {
+			Term t = (Term) symb;
+			result = parseToken(t.getTokenType());
+		} else {
+			NonTerm nt = (NonTerm) symb;
+			result = parse(lookup(nt));
+			
+		}
+		return result;
 	}
-
 	/** Parses the start of the token stream according to a given
 	 * rule, recursively calling {@link #parse(Symbol)} to process
 	 * the RHS.
@@ -65,7 +77,11 @@ public class GenericLLParser implements Parser {
 	 * because the token stream does not contain the expected symbols
 	 */
 	private AST parse(Rule rule) throws ParseException {
-		return null; // TODO fill in
+		AST result = new AST(rule.getLHS());
+		for (Symbol s : rule.getRHS()) {
+			result.addChild(parse(s));
+		}
+		return result;
 	}
 
 	/** Uses the lookup table to look up the rule to which
@@ -128,6 +144,28 @@ public class GenericLLParser implements Parser {
 
 	/** Constructs the {@link #ll1Table}. */
 	private Map<NonTerm, Map<Term, Rule>> calcLL1Table() {
-		return null; // TODO fill in
+		Map<NonTerm, Map<Term, Rule>> result = new HashMap<NonTerm, Map<Term, Rule>>();
+		for (NonTerm nt : g.getNonterminals()) {
+			Map<Term, Rule> row = new HashMap<Term, Rule>();
+			for (Rule p : g.getRules(nt)) {
+				for (Term t : calc.getFirstp().get(p)) {
+					row.put(t, p);
+				}
+			}
+			result.put(nt, row);
+		}
+		return result;
 	}
+	
+	private AST parseToken(int tokenType) throws ParseException {
+		Token next = next();
+		if (next.getType() != tokenType) {
+			throw new ParseException(String.format("Line %d:%d - expected token '%s' but found '%s'", next.getLine(),
+					next.getCharPositionInLine(), this.fact.get(tokenType), this.fact.get(next.getType())));
+		}
+		return new AST(this.fact.getTerminal(tokenType), next);
+	}
+	
+
+
 }
