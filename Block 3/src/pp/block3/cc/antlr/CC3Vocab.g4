@@ -8,6 +8,6 @@ RPAR   : ')';
 
 NUM : [0-9]+;
 BOOL : 'true' | 'false';
-STR : '"' ~(' '|'\t'|'\n'|'\r') '"';
+STR : [a-z]+ ;
 
 WS : [ \t\n\r] -> skip;
