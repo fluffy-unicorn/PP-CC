@@ -1,9 +1,6 @@
 package pp.block3.cc.test;
 
-import static org.junit.Assert.assertEquals;
-
 import java.io.IOException;
-import java.util.List;
 
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
@@ -29,7 +26,6 @@ public class TabularTest {
 	}
 
 	private void test(String file) {
-		System.out.println("Testing: " + file);
 		parse(prefix + file);
 	}
 
