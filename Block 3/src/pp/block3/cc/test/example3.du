@@ -1,0 +1,5 @@
+(D:aap D:aap U:noot 
+	(U:aap D:noot D:aap (U:noot) 
+		(D:noot U:noot) 
+	D:noot) 
+U:aap U:mies)

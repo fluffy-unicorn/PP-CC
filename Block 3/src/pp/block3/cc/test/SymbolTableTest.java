@@ -7,6 +7,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import pp.block3.cc.symbol.MySymbolTable;
 import pp.block3.cc.symbol.SymbolTable;
 
 public class SymbolTableTest {
@@ -14,7 +15,7 @@ public class SymbolTableTest {
 
 	@Before
 	public void initTable() {
-		// TODO table = // construct an instance of your implementation
+		table = new MySymbolTable();
 	}
 
 	@Test
@@ -46,6 +47,7 @@ public class SymbolTableTest {
 		assertFalse(this.table.contains("aap"));
 		assertTrue(this.table.add("aap"));
 		assertTrue(this.table.contains("aap"));
+		System.out.println("Hierna");
 		assertFalse(this.table.add("aap"));
 		assertFalse(this.table.contains("noot"));
 		this.table.openScope();
