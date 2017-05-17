@@ -29,12 +29,9 @@ public class Calculator extends ArithmeticBaseListener {
 	 * Factory needed to create terminals of the {@link Sentence} grammar. See
 	 * {@link pp.block2.cc.ll.SentenceParser} for example usage.
 	 */
-	private final SymbolFactory fact;
-	private boolean error = false;
 	private ParseTreeProperty<BigInteger> values = new ParseTreeProperty<BigInteger>();
 
 	public Calculator() {
-		this.fact = new SymbolFactory(ArithmeticLexer.class);
 	}
 
 	public BigInteger compute(Lexer lexer) {

@@ -1,4 +1,4 @@
-package pp.block2.cp.cp1;
+package pp.block2.cp.ass;
 
 import java.util.Collections;
 import java.util.Random;
