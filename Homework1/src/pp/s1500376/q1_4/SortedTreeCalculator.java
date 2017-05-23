@@ -1,13 +1,7 @@
 package pp.s1500376.q1_4;
 
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.Lexer;
-import org.antlr.v4.runtime.TokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeProperty;
-import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import pp.s1500376.q1_4.TreeParser.FullContext;
@@ -64,6 +58,11 @@ public class SortedTreeCalculator extends TreeBaseListener {
 		set(ctx, true, num, num);
 	}
 	
+	/**
+	 * Convert the text of a terminal node to an integer
+	 * @param s The terminal node to be parsed
+	 * @return The result of {@link Integer#parseInt})
+	 */
 	public int toInt(TerminalNode s) {
 		return Integer.parseInt(s.getText());
 	}
@@ -76,6 +75,11 @@ public class SortedTreeCalculator extends TreeBaseListener {
 		return values.get(tree);
 	}
 
+	/**
+	 * Calculates the maximum value of a number of integers
+	 * @param val A number of integers
+	 * @return The maximum value
+	 */
 	public int max(int... val) {
 		int max = 0;
 		for (int v : val) {
@@ -85,6 +89,11 @@ public class SortedTreeCalculator extends TreeBaseListener {
 		return max;
 	}
 
+	/**
+	 * Calculates the minimum value of a number of integers
+	 * @param val A number of integers
+	 * @return The minimum value
+	 */
 	public int min(int... val) {
 		int min = -1;
 		for (int v : val) {
@@ -94,6 +103,9 @@ public class SortedTreeCalculator extends TreeBaseListener {
 		return min;
 	}
 
+	/**
+	 * Class for storing the attribute values
+	 */
 	public class Attribute {
 		public boolean isSorted;
 		public int lowerBound;
@@ -106,23 +118,5 @@ public class SortedTreeCalculator extends TreeBaseListener {
 		}
 	}
 
-	public static void main(String[] args) {
-		String input1 = "((1 < 3) < 5 > ((6 < 8) < 10 > 15))";
-		String input2 = "((1 < 5) < 3 > 2)";
-		test(input1);
-		test(input2);
-	}
-
-	public static void test(String input) {
-		CharStream chars = CharStreams.fromString(input);
-		Lexer lexer = new TreeLexer(chars);
-		TokenStream tokens = new CommonTokenStream(lexer);
-		TreeParser parser = new TreeParser(tokens);
-		ParseTreeWalker walker = new ParseTreeWalker();
-		SortedTreeCalculator calc = new SortedTreeCalculator();
-		ParseTree tree = parser.top();
-		walker.walk(calc, tree);
-		String result =  calc.val(tree).isSorted ? "sorted" : "not sorted";
-		System.out.println("\"" + input + "\" is " +result);
-	}
+	
 }

@@ -4,3 +4,5 @@
 /BirthBaseListener.java
 /BirthListener.java
 /BirthParser.java
+/BirthTester.java
+/BirthLexer.tokens

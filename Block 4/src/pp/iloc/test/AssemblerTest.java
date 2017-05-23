@@ -66,6 +66,6 @@ public class AssemblerTest {
 		}
 	}
 
-	private final static String BASE_DIR = "pp/iloc/sample/";
+	private final static String BASE_DIR = "src/pp/iloc/sample/";
 	private final static boolean SHOW = true;
 }

@@ -1,4 +1,4 @@
-package pp.block4.cc.test;
+package pp.iloc.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -23,7 +23,7 @@ public class FindTest {
 	@Test
 	//(timeout = 1000)
 	public void simulate() {
-		Program p = assemble("pp/block4/cc/iloc/find");
+		Program p = assemble("src/pp/iloc/test/find");
 		if (SHOW) {
 			System.out.println(p.prettyPrint());
 		}

@@ -1,8 +1,9 @@
 package pp.s1500376.q1_5;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.antlr.v4.runtime.CharStream;
@@ -13,7 +14,6 @@ import org.antlr.v4.runtime.TokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.junit.Test;
-import static org.junit.Assert.assertTrue;
 
 public class BirthTester {
 
@@ -49,6 +49,9 @@ public class BirthTester {
 		assertTrue(areListsEqual(expected, errors));
 	}
 
+	/**
+	 * Checks whether two lists of strings are equal.
+	 */
 	public static boolean areListsEqual(List<String> a, List<String> b) {
 		if (a == null)
 			return b == null || b.size() == 0;
@@ -61,6 +64,11 @@ public class BirthTester {
 		return true;
 	}
 
+	/**
+	 * Converts an arbitrary number of strings to a {@link java.util#ArrayList} object.
+	 * @param strings
+	 * @return
+	 */
 	public static List<String> list(String... strings) {
 		List<String> result = new ArrayList<>();
 		for (String s : strings)

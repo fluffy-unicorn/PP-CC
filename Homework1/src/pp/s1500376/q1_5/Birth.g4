@@ -7,7 +7,7 @@ branch : enter* beget+ ;
 /** Figures may enter with unknown parenthood. */
 enter : ENTER sex ID (COMMA ID)* ;
 /** Figures may be born from mother and father. */
-beget : ID COMMA ID BEGET sex ID (COMMA ID)* #begetRule | LEFT branch RIGHT #begetBranch | enter #begetEnter;
+beget : ID COMMA ID BEGET sex ID (COMMA ID)* #begetRule | LEFT branch RIGHT #begetBranch;
 /** Persons are always male or female. */
 sex : MALE | FEMALE ;
 

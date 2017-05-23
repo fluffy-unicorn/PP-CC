@@ -1,5 +1,7 @@
 grammar Class;
 
+@header{package pp.s1500376.q1_3;}
+
 c : p CLASS ID x y;
 p : PUBLIC | ;
 x : EXTENDS ID | ;
