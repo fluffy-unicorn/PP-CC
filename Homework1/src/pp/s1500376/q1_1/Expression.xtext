@@ -1,0 +1,30 @@
+grammar pp.s1500376.q1_1.Expression
+
+generate expression "http://www.s1500376.pp/q1_1/expression/Expression";
+
+Expression :
+	Term
+;
+Term:
+	Factor (PLUS Factor)+ |
+	Value
+;
+
+Factor:
+	Value (TIMES Value)*
+;
+
+Value:
+	NUM |
+	LPAR Expression RPAR
+;
+
+terminal NUM returns ecore::EFloat: NUMCHAR* '.' NUMCHAR+;
+terminal WS: (' '|'\t'|'\r'|'\n')+;
+terminal fragment PLUS : '+';
+terminal fragment TIMES : '*';
+terminal fragment LPAR : '(';
+terminal fragment RPAR : ')';
+terminal fragment NUMCHAR : ('0'..'9');
+terminal fragment DOT: '.';
+

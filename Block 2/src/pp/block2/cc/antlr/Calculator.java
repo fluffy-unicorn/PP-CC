@@ -2,18 +2,13 @@ package pp.block2.cc.antlr;
 
 import java.math.BigInteger;
 
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.TokenStream;
-import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeProperty;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
-import pp.block2.cc.ParseException;
-import pp.block2.cc.SymbolFactory;
 import pp.block2.cc.antlr.ArithmeticParser.AdditionExprContext;
 import pp.block2.cc.antlr.ArithmeticParser.BracketExprContext;
 import pp.block2.cc.antlr.ArithmeticParser.FieldExprContext;

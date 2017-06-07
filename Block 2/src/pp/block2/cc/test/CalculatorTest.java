@@ -24,7 +24,6 @@ public class CalculatorTest {
 		areEqual("81","3^4");
 		areEqual("81","3^2^2");
 		areEqual("-10","-2*5");
-		long a = 10L;
 		
 	}
 	
