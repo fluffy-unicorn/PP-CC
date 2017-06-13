@@ -1,0 +1,52 @@
+main: 	cin "Argument? "				// Put input string on the stack
+		pop => r_len					// Get the length of the string
+		subI r_len, 1 => r_count		// Initial values
+		loadI 0 => r_n
+		loadI 0 => r_zero
+		loadI 1 => r_mult
+while:	cmp_GE r_count, r_zero => r_cmp
+		cbr r_cmp -> body, endw
+body:	cloadAO sp, r_count => r_char 	// Get the last (least significant) digit
+		c2i r_char => r_int				// Convert char to int
+		subI r_int, 48 => r_int			// Subtract 48 to get the numerical value
+		mult r_int, r_mult => r_int		// Multiply with the multiplier (10^0, 10^1, 10^2, ...)
+		add r_n, r_int => r_n			// Add this to r_n
+		multI r_mult, 10 => r_mult		// Multiply the multiplier by 10
+		subI r_count, 1 => r_count		// Decrease the counter
+		jumpI -> while
+endw:	loadI #ret => r_ret // Return address for fib call
+		push r_ret 			// first push the return address on the stack
+		push r_n 			// second push the parameter on the stack 
+		jumpI -> fib		// call the method fib
+ret:	pop => r_res		// get the result from the stack	
+		jumpI -> end		// jump to the end of the program
+
+// Function fib
+fib: 	pop => r_fib_n							// get the parameter from the stack		[ret]
+		loadI 1 => r_fib_1						
+		cmp_LE r_fib_n, r_fib_1 => r_fib_cmp	// if (n <= 1)
+		cbr r_fib_cmp -> then, else
+then:	loadI 1 => r_fib_res					// then result = 1
+		jumpI -> endif
+else:	subI r_fib_n, 2 => r_fib_n2				// else calculate n-2 
+		push r_fib_n							// push parameter on the stack (local variable) 
+		loadI #ret2 => r_fib_ret2				// calculate return address for first call
+		push r_fib_ret2							// push calculated return address for first call 
+		push r_fib_n2							// push parameter for first call 
+		jumpI -> fib							// calculate fib(n-2)
+ret2:	pop => r_fib_res2   					// get the result from the stack 
+		pop => r_fib_n							// get the stored parameter from the stack (local variable) 
+		subI r_fib_n, 1 => r_fib_n1				// calculate n-1
+		loadI #ret1 => r_fib_ret1					// calculate return address for second call
+		push r_fib_res2							// push first result (local variable) 
+		push r_fib_ret1							// push calculated return address for second call
+		push r_fib_n1							// push parameter for second call 
+		jumpI -> fib							// calculate fib(n-1) 
+ret1:	pop => r_fib_res1						// get the result from the stack 
+		pop => r_fib_res2						// get the stored first result from the stack (local variable) 
+		add r_fib_res2, r_fib_res1 => r_fib_res // calculate the sum of fib(n-2) and fib(n-1)
+endif:	pop => r_fib_ret						// get the return address for this function call
+		push r_fib_res							// push function result on the stack
+		jump -> r_fib_ret						// jump back to caller
+		
+end:	out "Result: ", r_res

@@ -1,0 +1,30 @@
+//Register-to-register
+start:  loadAI  r_arp, @n => r_n        // fib(int n)
+        loadI   1        => r_x         // int x = 1;
+        loadI   1        => r_y         // int y = 1;
+        loadI   1        => r_z         // int z = 1;
+while:  cmp_GT  r_n, 1   => r_cmp       // while (n > 1)
+        cbr     r_cmp    -> body, end
+body:   add     r_x, r_y => r_z         // z = x + y;
+        i2i     r_x      => r_y         // x = y;
+        i2i     r_y      => r_z         // y = z;
+        subI    r_n, 1   => r_n         // n = n - 1;
+        jumpI   while:
+end:    out     "Fib = ", r_z           // return z;
+
+//Memory-to-memory
+start: loadAI   r_arp, @n => r_n
+while: cmp_GT   r_n, 1    => r_cmp      // while (n > 1)
+       cbr      r_cmp     -> body, end
+body:  loadAI   r_arp, @x => r_x
+       loadAI   r_arp, @y => r_y
+       add      r_x, r_y  => r_z        // z = x + y;
+       storeAI  r_z       => r_arp, @z
+       storeAI  r_y       => r_arp, @x  // x = y;
+       storeAI  r_z       => r_arp, @y  // y = z;
+       subI     r_n, 1    => r_n        // n = n - 1;
+       storeAI  r_arp, @n => r_n
+       jumpI    start:
+end:   loadAI   r_arp, @z => r_z        // return z;
+       out      "Fib = ", r_z
+
