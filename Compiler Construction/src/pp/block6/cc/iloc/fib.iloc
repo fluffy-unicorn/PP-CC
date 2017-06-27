@@ -22,7 +22,7 @@ ret:	pop => r_res		// get the result from the stack
 		jumpI -> end		// jump to the end of the program
 
 // Function fib
-fib: 	pop => r_fib_n							// get the parameter from the stack		[ret]
+fib: 	pop => r_fib_n							// get the parameter from the stack
 		loadI 1 => r_fib_1						
 		cmp_LE r_fib_n, r_fib_1 => r_fib_cmp	// if (n <= 1)
 		cbr r_fib_cmp -> then, else

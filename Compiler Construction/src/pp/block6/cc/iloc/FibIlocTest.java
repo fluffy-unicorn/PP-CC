@@ -19,6 +19,7 @@ import pp.iloc.parse.FormatException;
 public class FibIlocTest {
 	private static final String BASENAME = "src/pp/block6/cc/iloc/";
 
+
 	@Test
 	public void test() {
 		test(89, "10\n");
@@ -37,6 +38,7 @@ public class FibIlocTest {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		sim.setOut(out);
 		sim.run();
+		System.out.println(out);
 		try (Scanner scan = new Scanner(out.toString())) {
 			return Integer.parseInt(scan.findInLine("[\\d-]+"));
 		}

@@ -24,6 +24,7 @@ public class Generator extends SimplePascalBaseVisitor<Op> {
 	public final static Num TRUE_VALUE = new Num(Simulator.TRUE);
 
 	/** The base register. */
+	@SuppressWarnings("unused")
 	private Reg arp = new Reg("r_arp");
 	/** The outcome of the checker phase. */
 	private Result checkResult;
@@ -60,6 +61,7 @@ public class Generator extends SimplePascalBaseVisitor<Op> {
 
 	/** Constructs an operation from the parameters 
 	 * and adds it to the program under construction. */
+	@SuppressWarnings("unused")
 	private Op emit(OpCode opCode, Operand... args) {
 		return emit((Label) null, opCode, args);
 	}
@@ -70,6 +72,7 @@ public class Generator extends SimplePascalBaseVisitor<Op> {
 	 * The label is actually constructed from the entry node
 	 * in the flow graph, as stored in the checker result.
 	 */
+	@SuppressWarnings("unused")
 	private Label label(ParserRuleContext node) {
 		Label result = this.labels.get(node);
 		if (result == null) {
@@ -91,12 +94,14 @@ public class Generator extends SimplePascalBaseVisitor<Op> {
 
 	/** Retrieves the offset of a variable node from the checker result,
 	 * wrapped in a {@link Num} operand. */
+	@SuppressWarnings("unused")
 	private Num offset(ParseTree node) {
 		return new Num(this.checkResult.getOffset(node));
 	}
 
 	/** Returns a register for a given parse tree node,
 	 * creating a fresh register if there is none for that node. */
+	@SuppressWarnings("unused")
 	private Reg reg(ParseTree node) {
 		Reg result = this.regs.get(node);
 		if (result == null) {
@@ -108,6 +113,7 @@ public class Generator extends SimplePascalBaseVisitor<Op> {
 	}
 
 	/** Assigns a register to a given parse tree node. */
+	@SuppressWarnings("unused")
 	private void setReg(ParseTree node, Reg reg) {
 		this.regs.put(node, reg);
 	}

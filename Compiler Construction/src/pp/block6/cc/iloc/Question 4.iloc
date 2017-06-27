@@ -1,0 +1,60 @@
+depth:	load    r_arp         => r_val        // Loading parameters in registers
+        loadI   0             => r_low        //
+        loadAI  r_arp, @a     => r_high       //
+        loadI	#ret		  => r_ret        //
+        storeAI r_ret         => r_arp,4      // Store return address 
+        storeAI r_val         => r_arp,8      // Store parameters
+        storeAI r_low         => r_arp,12     //
+        storeAI r_high        => r_arp,16     // 
+        addI    r_arp,8       => r_arp	      // Increment ARP to point to the first parameter
+        jumpI                 -> depth3       // Call the function depth3
+ret:    loadAI  r_arp, -4     => r_res        // Result is stored at ARP - 4
+       	jumpI				  -> end      	  // Continue with the function
+depth3: load    r_arp         => r_val        // Loading parameters in registers
+        loadAI  r_arp,4       => r_low        //
+        loadAI  r_arp,8       => r_high       //
+        cmp_LT  r_high, r_low => r_cmp	      // if (high < low) 
+        cbr     r_cmp         -> if, else     //
+if:     loadI   -1            => r_res        // then result = -1
+        jumpI                 -> ret3         // Continue with the function
+else:   add     r_low, r_high => r_mid        // else mid = (low + high) / 2
+        divI    r_mid, 2      => r_mid        // 
+        addI	r_mid,1		  => r_amid		  // Increase mid by one to indicate the offset in @a
+        multI	r_amid,4	  => r_amid		  // Multiply by character size (=4)
+        loadAI  r_amid,@a     => r_amid		  // Load the value a[mid] in register
+        cmp_EQ  r_amid, r_val => r_cmp		  // if (a[mid] == val)
+        cbr     r_cmp         -> if2, else2	  //
+if2:    loadI   1             => r_res        // then result = 1
+        jumpI                 -> ret3		  // Continue with the function
+else2:  cmp_LT  r_amid, r_val => r_cmp		  // elseif (a[mid] < val)
+        cbr     r_cmp 	      -> if3, else3	  //
+if3:    loadI	#retif		  => r_ret		  // Load return address in register
+		storeAI r_ret         => r_arp,12     // Store return address
+        storeAI r_val         => r_arp,16     // Store parameters 
+        addI    r_mid,1       => r_low        // low = mid + 1
+        storeAI r_low         => r_arp,20     // Store parameters
+        storeAI r_high        => r_arp,24     //
+        storeAI r_mid	      => r_arp,28     // Store local variable mid
+        addI    r_arp,16      => r_arp        // Increment ARP to point to the first parameter
+        jumpI                 -> depth3       // Call the function depth3
+retif:  loadAI  r_arp,-4      => r_res        // Result is stored at ARP - 4
+        addI    r_res,1       => r_res        // result = result_of_function_call + 1
+        subI    r_arp,16      => r_arp        // Restore ARP
+        jumpI				  -> ret3	      // Continue with the function
+else3:  loadI	#retel		  => r_ret		  // Load return address in register
+		storeAI r_ret         => r_arp,12     // Store return address
+        storeAI r_val         => r_arp,16     // Store parameters
+        storeAI r_low         => r_arp,20     //
+        subI    r_mid,1       => r_high       // high = mid - 1
+        storeAI r_high        => r_arp,24     // Store parameters
+        storeAI	r_mid	      => r_arp,28     // Store local variable mid
+        addI    r_arp,16      => r_arp        // Increment ARP to point to the first parameter
+        jumpI                 -> depth3       // Continue with the function
+retel:  loadAI  r_arp,-4      => r_res        // Result is stored at ARP - 4
+        addI    r_res,1       => r_res        // result = result_of_function_call + 1
+        subI    r_arp,16      => r_arp        // Restore ARP
+        jumpI				  -> ret3		  // Continue with the function
+ret3:   loadAI  r_arp,-4      => r_ret        // Return address is stored at ARP - 4
+        storeAI r_res         => r_arp,-4     // Override ARP - 4 with result
+        jump                  -> r_ret        // Jump back to caller
+end:	out "Depth: ", r_res				  // Print result

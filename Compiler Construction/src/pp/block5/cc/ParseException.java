@@ -3,6 +3,7 @@ package pp.block5.cc;
 import java.util.List;
 
 /** Exception class wrapping a list of error messages. */
+@SuppressWarnings("serial")
 public class ParseException extends Exception {
 	private final List<String> messages;
 

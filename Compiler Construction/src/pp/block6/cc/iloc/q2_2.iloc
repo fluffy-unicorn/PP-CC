@@ -1,0 +1,9 @@
+loadAI  r_arp,@a  => r_1
+loadAI  r_arp,@af => r_2
+mult    r_1,  r_2 => r_1
+loadAI  r_arp,@b  => r_2
+loadAI  r_arp,@bf => r_3
+mult    r_2,  r_3 => r_2
+add     r_1,  r_2 => r_2
+div     r_1,  r_2 => r_1
+storeAI r_1       => r_arp,@p

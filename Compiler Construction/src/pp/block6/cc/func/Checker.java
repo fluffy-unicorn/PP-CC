@@ -1,12 +1,10 @@
 package pp.block6.cc.func;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
-import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
 import pp.block6.cc.ParseException;
 import pp.block6.cc.pascal.FuncPascal6BaseListener;
@@ -14,7 +12,6 @@ import pp.block6.cc.pascal.FuncPascal6Parser.BoolExprContext;
 import pp.block6.cc.pascal.FuncPascal6Parser.CallExprContext;
 import pp.block6.cc.pascal.FuncPascal6Parser.CompExprContext;
 import pp.block6.cc.pascal.FuncPascal6Parser.FalseExprContext;
-import pp.block6.cc.pascal.FuncPascal6Parser.IdExprContext;
 import pp.block6.cc.pascal.FuncPascal6Parser.MultExprContext;
 import pp.block6.cc.pascal.FuncPascal6Parser.NumExprContext;
 import pp.block6.cc.pascal.FuncPascal6Parser.ParExprContext;
@@ -193,6 +190,7 @@ public class Checker extends FuncPascal6BaseListener {
 	}
 
 	/** Convenience method to add an offset to the result. */
+	@SuppressWarnings("unused")
 	private void setOffset(ParseTree node, Integer offset) {
 		//this.result.setOffset(node, offset);
 	}
