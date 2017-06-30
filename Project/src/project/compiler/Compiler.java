@@ -19,6 +19,7 @@ import project.sprockell.Program;
 
 public class Compiler {
 
+	public static final int MAX_THREADS = 4;
 	private static final boolean DEBUG = true;
 	private static final String EXT_HASKELL = ".hs";
 	private static final String EXT_GOOSESPEAK = ".goose";

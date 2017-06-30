@@ -1,0 +1,9 @@
+enter male Peter
+Betty, Peter beget female Andrea
+Peter, Peter beget male Selfie
+[ enter female Betty
+  Betty, Peter beget male Andrea
+]
+[ enter female Betty
+Betty, Peter beget female Betty
+]

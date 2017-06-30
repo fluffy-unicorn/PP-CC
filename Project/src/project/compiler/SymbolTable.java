@@ -1,6 +1,7 @@
 package project.compiler;
 
 import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.Iterator;
 
@@ -27,10 +28,10 @@ public class SymbolTable {
 	 * Close the last opened scope
 	 */
 	public void closeScope() {
+		scopeStack.pop();
 		Scope topScope = scopeStack.peek();
 		if(topScope != null)
 			size -= topScope.getSize();
-		scopeStack.pop();
 	}
 
 	/**
@@ -109,5 +110,9 @@ public class SymbolTable {
 	 */
 	public int getSize() {
 		return size;
+	}
+	
+	public String toString() {
+		return Arrays.toString(scopeStack.toArray());
 	}
 }

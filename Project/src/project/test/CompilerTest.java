@@ -15,12 +15,14 @@ public class CompilerTest {
 	private final Compiler compiler = new Compiler();
 	@Test //(timeout=1000)
 	public void testCalcs() throws IOException, ParseException {
-//		compile("math");
-//		compile("fib");
-//		compile("arrays");
-//		compile("pointer");
+		compile("arrays");
+		compile("boolean");
 		compile("concurrent");
+		compile("fib");
+		compile("maths");
+		compile("pointer");
 	}
+
 	
 	private void compile(String filename) {
 		try {

@@ -41,7 +41,7 @@ public class FunctionChecker extends GooseSpeakBaseVisitor<Function> {
 				ThreadDeclContext t = (ThreadDeclContext)conCtx;
 				Function result = visit(t);
 				try {
-					functionTable.addFunction(result);
+					functionTable.addThread(result, t);
 				} catch (CompilerException e) {
 					Checker.addError(errors, t, result.toString() + " is already declared.");
 				}
@@ -67,12 +67,7 @@ public class FunctionChecker extends GooseSpeakBaseVisitor<Function> {
 	
 	@Override
 	public Function visitThreadDecl(ThreadDeclContext ctx) {
-		ArgumentDeclContext argumentCtx = ctx.argumentDecl();
-		List<Type> types = new ArrayList<>();
-		if (argumentCtx != null)
-			for (TypeContext type : argumentCtx.type())
-				types.add(Checker.parseType(errors, type));
-		return new Function(Type.Thread, ctx.ID().getText(), types.toArray(new Type[0]));
+		return new Function(Type.Thread, ctx.ID().getText(), new Type[0]);
 	}
 
 }

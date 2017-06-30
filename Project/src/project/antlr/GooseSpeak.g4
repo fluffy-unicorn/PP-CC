@@ -18,13 +18,13 @@ argumentDecl : type ID (COMMA type ID)*;
 
 concurrentDecl : LOCK ID SEMI #lockDecl
 			   | SHAREDINT ID ASSIGN expr SEMI #sharedDecl
-			   | THREAD ID LBRACE argumentDecl? RBRACE stat #threadDecl
+			   | THREAD ID LBRACE RBRACE stat #threadDecl
 			   ;
 
 /* Statements */
 stat : LPAR stat* RPAR 							 #blockStat
 	 | PRINT expr SEMI 						     #printStat
-	 | READ ID SEMI 							 #readStat // TODO read to pointer?
+	 | READ ID SEMI 							 #readStat
 	 | type ID SEMI                              #declStat
 	 | type ID ASSIGN expr SEMI                  #declAssStat
 	 | ID ASSIGN expr SEMI                       #assignStat
@@ -38,7 +38,7 @@ stat : LPAR stat* RPAR 							 #blockStat
 	 | RETURN expr SEMI 						 #returnExpr
 	 | RETURN SEMI 								 #returnVoid
 	 | COMMENT 									 #comment
-	 | THREAD ID ASSIGN FORK ID LBRACE arguments? RBRACE SEMI #forkStat // TODO maybe without arguments?
+	 | THREAD ID ASSIGN FORK ID LBRACE RBRACE SEMI #forkStat
 	 | JOIN ID SEMI								 #joinStat
 	 | ACQUIRE ID SEMI							 #acquireStat
 	 | RELEASE ID SEMI							 #releaseStat
@@ -60,6 +60,7 @@ expr : prfOp expr        		    #prfExpr
      | expr multOp expr  		    #multExpr
      | expr plusOp expr  		    #plusExpr
      | expr compOp expr  		    #compExpr
+     | expr bitOp expr				#bitExpr
      | expr boolOp expr  		    #boolExpr
      | LPAR (expr (COMMA expr)*)? RPAR #arrayExpr
      | ID array+ 				    #arrayElemExpr
@@ -74,10 +75,11 @@ expr : prfOp expr        		    #prfExpr
      | LBRACE expr RBRACE		    #braceExpr
      ;
 
-/* Operators */
+/* Operators */ // TODO bitwise
 prfOp  : BW_NOT | LOG_NOT | LEN | STR;
 powerOp : POWER;
 multOp : MULT | DIV | MOD;
 plusOp : PLUS | MINUS;
+bitOp : BW_OR | BW_AND | BW_XOR | BW_LSHFT | BW_RSHFT;
 boolOp : LOG_AND | LOG_OR;
 compOp : LOG_LE | LOG_LT | LOG_GE | LOG_GT | LOG_EQ | LOG_NE;

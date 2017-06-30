@@ -6,12 +6,7 @@ import java.util.Map;
 
 /** Class combining the information of a single scope level. */
 public class Scope {
-	/**
-	 * Current size of this scope (in bytes). Used to calculate offsets of newly
-	 * declared variables.
-	 */
-	private int size;
-	private final Map<String, Variable> variables;
+	protected final Map<String, Variable> variables;
 
 	/** Constructs a fresh, initially empty scope. */
 	public Scope() {
@@ -46,12 +41,11 @@ public class Scope {
 		boolean result = !this.variables.containsKey(id);
 		if (result) {
 			Variable var = new Variable();
-			this.variables.put(id, var);
-			var.setOffset(this.size);
+			var.setOffset(this.getSize());
 			var.setType(t);
 			if (initialized)
 				var.setInitalized();
-			this.size += 1;
+			this.variables.put(id, var);
 		}
 		return result;
 	}
@@ -66,10 +60,10 @@ public class Scope {
 	}
 	
 	/**
-	 * Returns a collection of all the variables defined in the scope
+	 * Returns a map of all the variables defined in the scope
 	 */
-	public Collection<Variable> getVariables() {
-		return variables.values();
+	public Map<String, Variable> getVariables() {
+		return variables;
 	}
 	
 	/**
@@ -77,6 +71,10 @@ public class Scope {
 	 * @return The number of declared variables
 	 */
 	public int getSize() {
-		return size;
+		return this.variables.size();
+	}
+	
+	public String toString() {
+		return this.variables.toString();
 	}
 }

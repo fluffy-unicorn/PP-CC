@@ -5,7 +5,7 @@ MINUS :'-';
 MULT  :'*';
 DIV   :'/';
 MOD   :'%';
-POWER :'^';
+POWER :'**';
 
 /* Bitwise */
 BW_OR    :'|' ;
@@ -24,7 +24,6 @@ LOG_LE  :'<=';
 LOG_LT  :'<' ;
 LOG_GE  :'>=';
 LOG_GT  :'>' ;
-LOG_OP  :LOG_OR | LOG_AND | LOG_EQ | LOG_NE | LOG_LE | LOG_LT | LOG_GE | LOG_GT;
 LOG_NOT :'!' ;
 
 /* Special characters */
@@ -46,7 +45,6 @@ ELSE     :'else'    ;
 WHILE    :'while'   ;
 FOR      :'for'     ;
 FUNCTION :'function';
-PARALLEL :'parallel';
 PRINT    :'print'   ;
 READ     :'read'    ;
 BREAK    :'break'   ;
@@ -80,7 +78,7 @@ THREAD	  : 'thread'    ;
 TRUE       :'true';
 FALSE      :'false';
 ID         :LETTER (LETTER|DIGIT)*;
-NUM        : MINUS? DIGIT (DIGIT)*;
+NUM        :MINUS? DIGIT (DIGIT)*;
 CHAR_LIT   :QUOTE ~('\n'|'\r'|'\'')* QUOTE;
 STRING_LIT :DQUOTE ~('\n'|'\r'|'"')* DQUOTE;
 

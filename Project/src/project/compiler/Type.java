@@ -104,7 +104,7 @@ abstract public class Type {
 
 		@Override
 		public String toString() {
-			return "integer";
+			return (isShared() ? "shared " : "") + "integer";
 		}
 
 		@Override

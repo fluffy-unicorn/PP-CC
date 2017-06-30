@@ -4,6 +4,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
@@ -23,11 +24,14 @@ import project.antlr.GooseSpeakParser.ArrayExprContext;
 import project.antlr.GooseSpeakParser.ArrayTypeContext;
 import project.antlr.GooseSpeakParser.AssignStatContext;
 import project.antlr.GooseSpeakParser.BasicTypeContext;
+import project.antlr.GooseSpeakParser.BitExprContext;
 import project.antlr.GooseSpeakParser.BlockStatContext;
 import project.antlr.GooseSpeakParser.BoolExprContext;
 import project.antlr.GooseSpeakParser.BraceExprContext;
+import project.antlr.GooseSpeakParser.BreakStatContext;
 import project.antlr.GooseSpeakParser.CharExprContext;
 import project.antlr.GooseSpeakParser.CompExprContext;
+import project.antlr.GooseSpeakParser.ContinueStatContext;
 import project.antlr.GooseSpeakParser.DeclAssStatContext;
 import project.antlr.GooseSpeakParser.DeclStatContext;
 import project.antlr.GooseSpeakParser.ExprContext;
@@ -68,14 +72,17 @@ public class Checker extends GooseSpeakBaseListener {
 	private Result result;
 	private FunctionTable functionTable;
 	private List<String> errors;
-	private Scope globalScope;
-	private ParseTreeProperty<Integer> stringSize = new ParseTreeProperty<>();
+	private GlobalScope globalScope;
+	private ParseTreeProperty<Integer> stringSize;
+	private int lastThreadId;
 
 	public Result check(List<String> errors, FunctionTable functionTable, ParseTree tree) throws ParseException {
 		this.result = new Result(functionTable);
 		this.functionTable = result.getFunctionTable();
 		this.errors = errors;
-		this.globalScope = new Scope();
+		this.globalScope = new GlobalScope();
+		this.stringSize = new ParseTreeProperty<>();
+		this.lastThreadId = 0;
 		new ParseTreeWalker().walk(this, tree);
 		return this.result;
 	}
@@ -84,6 +91,12 @@ public class Checker extends GooseSpeakBaseListener {
 	public void exitProgram(ProgramContext ctx) {
 		if (!this.functionTable.hasVoidMain())
 			addError(ctx, "Program has no void main");
+		Map<String, Variable> globalVars = globalScope.getVariables();
+		for (String s : globalVars.keySet()) {
+			Variable v = globalVars.get(s);
+			// if(!v.isInitalized())
+			// addError(ctx, s + " is not initialized");
+		}
 
 	}
 
@@ -147,7 +160,7 @@ public class Checker extends GooseSpeakBaseListener {
 	public void exitFunc(FuncContext ctx) {
 		if (!getFunction(ctx).hasReturn() && !getFunction(ctx).isVoid())
 			addError(ctx, ctx.ID().getText() + " has no return statement");
-		closeScope();
+		closeScope(ctx);
 	}
 
 	@Override
@@ -159,6 +172,7 @@ public class Checker extends GooseSpeakBaseListener {
 			Variable v = globalScope.getVariable(id);
 			v.setGlobal();
 			setVariable(ctx.ID(), v);
+			result.setConcurrentDeclaration(ctx);
 		}
 	}
 
@@ -174,48 +188,31 @@ public class Checker extends GooseSpeakBaseListener {
 			Variable v = globalScope.getVariable(id);
 			v.setGlobal();
 			setVariable(ctx.ID(), v);
+			result.setConcurrentDeclaration(ctx);
 		}
 	}
 
 	@Override
 	public void enterThreadDecl(ThreadDeclContext ctx) {
-		ArgumentDeclContext argumentCtx = ctx.argumentDecl();
-		List<Type> types = new ArrayList<>();
-		List<TerminalNode> ids = new ArrayList<>();
-		if (argumentCtx != null) {
-			ids = argumentCtx.ID();
-			for (TypeContext type : argumentCtx.type())
-				types.add(parseType(type));
-		}
-		Function f = functionTable.get(ctx.ID().getText(), types.toArray(new Type[0]));
+		Function f = functionTable.get(ctx.ID().getText(), new Type[0]);
 		setFunction(ctx, f);
 		symbolTable = f.getSymbolTable();
-
 		openScope();
-		for (int i = 0; i < ids.size(); i++) {
-			TerminalNode ID = ids.get(i);
-			Type type = types.get(i);
-			String id = ID.getText();
-			if (!symbolTable.add(id, type, true))
-				addError(ctx, id + " is already decleared as parameter.");
-		}
 	}
 
 	@Override
 	public void exitThreadDecl(ThreadDeclContext ctx) {
-		closeScope();
+		closeScope(ctx);
 	}
 
 	@Override
 	public void enterBlockStat(BlockStatContext ctx) {
-		if (!parentOpensScope(ctx))
-			openScope();
+		openScope();
 	}
 
 	@Override
 	public void exitBlockStat(BlockStatContext ctx) {
-		if (!parentOpensScope(ctx))
-			closeScope();
+		closeScope(ctx);
 	}
 
 	@Override
@@ -281,6 +278,7 @@ public class Checker extends GooseSpeakBaseListener {
 					+ getType(ctx.expr()) + ".");
 		else if (checkType(var.getType(), Type.String))
 			var.setType(new Type.Array(getSize(ctx.expr()), Type.Char));
+		var.setInitalized();
 		setVariable(ctx.ID(), var);
 	}
 
@@ -312,7 +310,7 @@ public class Checker extends GooseSpeakBaseListener {
 	public void exitIfStat(IfStatContext ctx) {
 		if (!checkType(Type.Bool, getType(ctx.expr())))
 			addError(ctx, "The expression in the if-statement is not of type bool");
-		closeScope();
+		closeScope(ctx);
 	}
 
 	@Override
@@ -324,12 +322,26 @@ public class Checker extends GooseSpeakBaseListener {
 	public void exitWhileStat(WhileStatContext ctx) {
 		if (!checkType(Type.Bool, getType(ctx.expr())))
 			addError(ctx, "The expression in the while-statement is not of type bool");
-		closeScope();
+		closeScope(ctx);
+	}
+
+	@Override
+	public void exitBreakStat(BreakStatContext ctx) {
+		RuleContext parent = getParentWhileCtx(ctx);
+		if (parent == null)
+			addError(ctx, "A break statement must reside in a while statement");
+	}
+
+	@Override
+	public void exitContinueStat(ContinueStatContext ctx) {
+		RuleContext parent = getParentWhileCtx(ctx);
+		if (parent == null)
+			addError(ctx, "A continue statement must reside in a while statement");
 	}
 
 	@Override
 	public void exitFunctionCall(FunctionCallContext ctx) {
-		checkFunction(ctx, ctx.ID().getText(), false, getArguments(ctx.arguments()));
+		checkFunction(ctx, ctx.ID().getText(), false, ctx.arguments());
 	}
 
 	@Override
@@ -340,9 +352,12 @@ public class Checker extends GooseSpeakBaseListener {
 	@Override
 	public void exitReturnExpr(ReturnExprContext ctx) {
 		Type type = getType(ctx.expr());
-		RuleContext parent = ctx.getParent();
-		while (!(parent instanceof FuncContext) && parent != null) {
-			parent = parent.getParent();
+		if (type == null)
+			return; // An earlier error occurred
+		RuleContext parent = getParentFunctionCtx(ctx);
+		if (parent == null) {
+			addError(ctx, "Return statements can only occur inside functions.");
+			return;
 		}
 		Function func = getFunction(parent);
 		if (type.equals(Type.Void))
@@ -359,13 +374,14 @@ public class Checker extends GooseSpeakBaseListener {
 	@Override
 	public void exitReturnVoid(ReturnVoidContext ctx) {
 		Type type = Type.Void;
-		RuleContext parent = ctx.getParent();
-		while (!(parent instanceof FuncContext && parent != null)) {
-			parent = parent.getParent();
+		RuleContext parent = getParentFunctionCtx(ctx);
+		if (parent == null) {
+			addError(ctx, "Return statements can only occur inside functions.");
+			return;
 		}
 		Function func = getFunction(parent);
 		setFunction(ctx, func);
-		if (!checkType(func.getReturnType(), type))
+		if (!checkType(func.getReturnType(), type) && !checkType(func.getReturnType(), Type.Thread))
 			addError(ctx, "Function " + getFunction(parent).getName() + " expects a return value.");
 		else
 			func.setReturn();
@@ -373,32 +389,65 @@ public class Checker extends GooseSpeakBaseListener {
 
 	@Override
 	public void exitForkStat(ForkStatContext ctx) {
-		checkFunction(ctx, ctx.ID(1).getText(), false, getArguments(ctx.arguments()));
-		
+		String id = ctx.ID(0).getText();
+		if (!symbolTable.add(id, Type.Thread, true))
+			addError(ctx, id + " is already declared in this scope.");
+		else {
+			Variable v = getDeclaredVariable(id);
+			// TODO proper exception
+			assert lastThreadId < Compiler.MAX_THREADS;
+			v.setThreadId(lastThreadId);
+			lastThreadId++;
+			setVariable(ctx.ID(0), v);
+			checkFunction(ctx, ctx.ID(1).getText(), false);
+		}
+
 	}
 
 	@Override
 	public void exitJoinStat(JoinStatContext ctx) {
+		String id = ctx.ID().getText();
+		Variable var = getDeclaredVariable(id);
+		if (!checkType(var.getType(), Type.Thread))
+			addError(ctx, id + " is not a thread variable.");
+		setVariable(ctx, var);
 	}
 
 	@Override
 	public void exitAcquireStat(AcquireStatContext ctx) {
-
+		String id = ctx.ID().getText();
+		Variable var = getDeclaredVariable(id);
+		if (!checkType(var.getType(), Type.Lock))
+			addError(ctx, "Acquire is only valid on a lock");
+		setVariable(ctx, var);
 	}
 
 	@Override
 	public void exitReleaseStat(ReleaseStatContext ctx) {
+		String id = ctx.ID().getText();
+		Variable var = getDeclaredVariable(id);
+		if (!checkType(var.getType(), Type.Lock))
+			addError(ctx, "Release is only valid on a lock");
+		setVariable(ctx, var);
 	}
 
 	@Override
 	public void exitPrfExpr(PrfExprContext ctx) {
 		Type type = getType(ctx.expr());
-		if (ctx.prfOp().LEN() != null)
+		if (ctx.prfOp().LEN() != null) {
+			if(type.getKind() != TypeKind.Array && type.getKind() != TypeKind.String)
+				addError(ctx, "expected an array type, but got " + type);
 			type = Type.Int;
-		else if (ctx.prfOp().STR() != null)
+		}
+		else if (ctx.prfOp().STR() != null) {
+			if(!checkType(type, Type.Int))
+				addError(ctx, "expected an integer type, but got " + type);
 			type = Type.String;
-		else if (!checkType(type, Type.Bool))
+		}
+		else if (ctx.prfOp().LOG_NOT() != null && !checkType(type, Type.Bool))
 			addError(ctx, "Boolean operator on non-boolean expression");
+		else if (ctx.prfOp().BW_NOT() != null && !checkType(type, Type.Int))
+			addError(ctx, "Bitwise operator on non-integer expression");
 		setType(ctx, type);
 	}
 
@@ -458,6 +507,16 @@ public class Checker extends GooseSpeakBaseListener {
 	}
 
 	@Override
+	public void exitBitExpr(BitExprContext ctx) {
+		Type type0 = getType(ctx.expr(0));
+		Type type1 = getType(ctx.expr(1));
+		String errorMessage = "Bitwise operators are only possible for two integer types";
+		if (!checkType(type0, type1) || !checkType(type0, Type.Int))
+			addError(ctx, errorMessage);
+		setType(ctx, Type.Int);
+	}
+
+	@Override
 	public void exitBoolExpr(BoolExprContext ctx) {
 		Type type0 = getType(ctx.expr(0));
 		Type type1 = getType(ctx.expr(1));
@@ -485,24 +544,26 @@ public class Checker extends GooseSpeakBaseListener {
 
 	@Override
 	public void exitArrayElemExpr(ArrayElemExprContext ctx) {
-		Type type = getDeclaredVariable(ctx.ID().getText()).getType();
+		Variable var = getDeclaredVariable(ctx.ID().getText());
+		Type type = var.getType();
 		for (ArrayContext array : ctx.array()) {
 			type = ((Type.Array) type).getElemType();
 			if (!checkType(getType(array.expr()), Type.Int))
 				addError(array, "Array element retrieval without integer.");
 		}
 		setType(ctx, type);
+		setVariable(ctx.ID(), var);
 	}
 
 	@Override
 	public void exitFunctionExpr(FunctionExprContext ctx) {
-		checkFunction(ctx, ctx.ID().getText(), false,getArguments(ctx.arguments()));
+		checkFunction(ctx, ctx.ID().getText(), false, ctx.arguments());
 
 	}
 
 	@Override
 	public void exitProcedureExpr(ProcedureExprContext ctx) {
-		checkFunction(ctx, ctx.ID().getText(),false);
+		checkFunction(ctx, ctx.ID().getText(), false);
 	}
 
 	@Override
@@ -523,6 +584,7 @@ public class Checker extends GooseSpeakBaseListener {
 	@Override
 	public void exitStringExpr(StringExprContext ctx) {
 		int size = ctx.STRING_LIT().getText().length() - 2;
+		this.stringSize.put(ctx, size);
 		setType(ctx, new Type.Array(size, Type.Char));
 	}
 
@@ -554,24 +616,24 @@ public class Checker extends GooseSpeakBaseListener {
 		return result.toArray(new Type[result.size()]);
 	}
 
-	private void checkFunction(ParserRuleContext ctx, String name, boolean isThread, Type... types) {
-		List<Function> fs = functionTable.get(name);
-		for (Function f : fs) {
-			Type returnType = f.getReturnType();
-			if (f.equals(new Function(returnType, name, types))) {
-				if (isThread)
-					if (!returnType.equals(Type.Thread))
-						continue; // Or return?
-				setType(ctx, returnType);
-				setFunction(ctx, f);
-				return;
-			}
+	private void checkFunction(ParserRuleContext ctx, String name, boolean isThread) {
+		checkFunction(ctx, name, isThread, null);
+	}
+
+	private void checkFunction(ParserRuleContext ctx, String name, boolean isThread, ArgumentsContext args) {
+		Type[] types = (args == null ? new Type[0] : getArguments(args));
+		Function f = functionTable.get(name, types);
+		if (f == null) {
+			if (types.length == 0)
+				addError(ctx, (isThread ? "Thread " : "Procedure ") + name + " is not defined.");
+			else
+				addError(ctx, (isThread ? "Thread " : "Function ") + name + " with arguments " + Arrays.toString(types)
+						+ " is not defined.");
+			return;
 		}
-		if (types.length == 0)
-			addError(ctx, (isThread ? "Thread " : "Procedure ") + name + " is not defined.");
-		else
-			addError(ctx, (isThread ? "Thread " :"Function ") + name 
-					+ " with arguments " + Arrays.toString(types) + " is not defined.");
+		Type returnType = f.getReturnType();
+		setType(ctx, returnType);
+		setFunction(ctx, f);
 	}
 
 	private Type parseType(TypeContext ctx) {
@@ -715,12 +777,33 @@ public class Checker extends GooseSpeakBaseListener {
 		symbolTable.openScope();
 	}
 
-	private void closeScope() {
+	private void closeScope(ParserRuleContext ctx) {
 		Scope scope = symbolTable.getHead();
 		int offset = symbolTable.getSize();
-		for (Variable v : scope.getVariables()) {
+		Map<String, Variable> variables = scope.getVariables();
+		for (String s : variables.keySet()) {
+			Variable v = variables.get(s);
 			v.setOffset(v.getOffset() + offset);
+			// if(!v.isInitalized())
+			// addError(ctx, s + " is not initialized");
 		}
 		symbolTable.closeScope();
 	}
+
+	private RuleContext getParentFunctionCtx(RuleContext ctx) {
+		RuleContext parent = ctx.getParent();
+		while (parent != null && !(parent instanceof FuncContext || parent instanceof ThreadDeclContext)) {
+			parent = parent.getParent();
+		}
+		return parent;
+	}
+
+	private RuleContext getParentWhileCtx(RuleContext ctx) {
+		RuleContext parent = ctx.getParent();
+		while (parent != null && !(parent instanceof WhileStatContext)) {
+			parent = parent.getParent();
+		}
+		return parent;
+	}
+
 }

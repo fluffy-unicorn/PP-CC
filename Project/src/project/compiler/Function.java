@@ -170,4 +170,11 @@ public class Function {
 	public boolean isVoid() {
 		return this.returnType.getKind() == TypeKind.Void;
 	}
+	
+	/**
+	 * Indicate whether the function is the void main function
+	 */
+	public boolean isVoidMain() {
+		return this.name.equals("main") && this.args.length == 0;
+	}
 }
