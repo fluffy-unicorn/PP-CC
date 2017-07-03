@@ -254,7 +254,13 @@ public class Generator extends GooseSpeakBaseVisitor<Reg> {
 	@Override
 	public Reg visitDeclAssStat(DeclAssStatContext ctx) {
 		Variable var = this.result.getVariable(ctx.ID());
-		if (var.isArray() && ctx.expr() instanceof ArrayExprContext) {
+		if (var.isPointer()) {
+			Reg reg = visit(ctx.expr());
+			emit(InstructionType.Store, reg, addr(ATypes.IndAddr, Reg.regHP));
+			emit(InstructionType.Push, Reg.regHP);
+			emit(InstructionType.Compute, Op.Incr, Reg.regHP, Reg.reg0, Reg.regHP);
+		} 
+		else if (var.isArray() && ctx.expr() instanceof ArrayExprContext) {
 			allocateVariable(var);
 			storeArray(ctx.expr(), var);
 		} else if (var.isArray() && ctx.expr() instanceof StringExprContext) {
@@ -297,9 +303,17 @@ public class Generator extends GooseSpeakBaseVisitor<Reg> {
 
 	@Override
 	public Reg visitAssignStat(AssignStatContext ctx) {
-		Reg result = visit(ctx.expr());
 		Variable var = this.result.getVariable(ctx.ID());
-		storeVariable(var, result);
+		if (var.isArray() && ctx.expr() instanceof ArrayExprContext) {
+			allocateVariable(var);
+			storeArray(ctx.expr(), var);
+		} else if (var.isArray() && ctx.expr() instanceof StringExprContext) {
+			allocateVariable(var);
+			storeString(ctx.expr(), var);
+		} else {
+			Reg result = visit(ctx.expr());
+			storeVariable(var, result);
+		}
 		return null;
 	}
 
@@ -374,6 +388,11 @@ public class Generator extends GooseSpeakBaseVisitor<Reg> {
 
 	@Override
 	public Reg visitReturnExpr(ReturnExprContext ctx) {
+		Function f = result.getFunction(ctx);
+		if (f.isVoidMain()) {
+			emit(InstructionType.Jump, target(TTypes.Abs, endOfProgram));
+			return null;
+		}
 		Reg exprReg = visit(ctx.expr());
 		Reg returnAddrReg = getReg();
 		// Reset the stack pointer to ARP + 1
@@ -638,7 +657,6 @@ public class Generator extends GooseSpeakBaseVisitor<Reg> {
 			if (var.isPointer()) {
 				emit(InstructionType.Load, addr(ATypes.IndAddr, reg), reg);
 				emit(InstructionType.Store, value, addr(ATypes.IndAddr, reg));
-				emit(InstructionType.Push, reg);
 			} else {
 				emit(InstructionType.Store, value, addr(ATypes.IndAddr, reg));
 			}
@@ -743,7 +761,8 @@ public class Generator extends GooseSpeakBaseVisitor<Reg> {
 
 	private void allocateVariable(Variable var) {
 		if (var == null) {
-			/* Skip next two checks */ } else if (var.isPointer())
+			/* Skip next two checks */ 
+		} else if (var.isPointer())
 			emit(InstructionType.Compute, Op.Incr, Reg.regHP, Reg.reg0, Reg.regHP);
 		else if (var.isArray()) {
 			Type.Array arr = (Type.Array) var.getType();

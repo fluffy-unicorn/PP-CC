@@ -115,7 +115,7 @@ abstract public class Type {
 				return true;
 			if (other instanceof Type) {
 				Type otherType = (Type) other;
-				return otherType.getKind() == TypeKind.Int || otherType.getKind() == TypeKind.IntPtr;
+				return otherType.getKind() == TypeKind.Int|| otherType.getKind() == TypeKind.IntPtr;
 			}
 			return false;
 		}
@@ -148,7 +148,7 @@ abstract public class Type {
 				return true;
 			if (other instanceof Type) {
 				Type otherType = (Type) other;
-				return otherType.getKind() == TypeKind.Char || otherType.getKind() == TypeKind.CharPtr;
+				return otherType.getKind() == TypeKind.Char|| otherType.getKind() == TypeKind.CharPtr;
 			}
 			return false;
 		}
@@ -274,7 +274,7 @@ abstract public class Type {
 	}
 
 	static public class Array extends Type {
-		private final int size;
+		private int size;
 		private final Type elemType;
 
 		public Array(int size, Type elemType) {
@@ -290,7 +290,11 @@ abstract public class Type {
 
 		@Override
 		public int size() {
-			return (size) * this.elemType.size();
+			return size;
+		}
+		
+		public void setSize(int size) {
+			this.size = size;
 		}
 
 		@Override
@@ -317,18 +321,14 @@ abstract public class Type {
 			if (!(obj instanceof Array))
 				return false;
 			Array other = (Array) obj;
-			if (this.elemType.getKind() == TypeKind.Void || other.elemType.getKind() == TypeKind.Void)
-				return this.size == other.size;
-			if (this.size == -1 && this.getElemType().getKind() == TypeKind.Char)
-				return other.getKind() == TypeKind.String;
-			if (other.size == -1 && other.getElemType().getKind() == TypeKind.Char)
-				return this.getKind() == TypeKind.String;
-			if (!this.elemType.equals(other.elemType)) {
+			if (!this.elemType.equals(other.elemType))
 				return false;
-			}
-			if (this.size != other.size) {
+			if (this.size == -1)
+				return true;
+			if (other.size == -1)
+				return true;
+			if (this.size != other.size)
 				return false;
-			}
 			return true;
 		}
 

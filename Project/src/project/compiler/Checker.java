@@ -1,6 +1,5 @@
 package project.compiler;
 
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -73,15 +72,15 @@ public class Checker extends GooseSpeakBaseListener {
 	private FunctionTable functionTable;
 	private List<String> errors;
 	private GlobalScope globalScope;
-	private ParseTreeProperty<Integer> stringSize;
+	private ParseTreeProperty<Integer> arraySize;
 	private int lastThreadId;
 
-	public Result check(List<String> errors, FunctionTable functionTable, ParseTree tree) throws ParseException {
+	public Result check(List<String> errors, FunctionTable functionTable, ParseTree tree) {
 		this.result = new Result(functionTable);
 		this.functionTable = result.getFunctionTable();
 		this.errors = errors;
 		this.globalScope = new GlobalScope();
-		this.stringSize = new ParseTreeProperty<>();
+		this.arraySize = new ParseTreeProperty<>();
 		this.lastThreadId = 0;
 		new ParseTreeWalker().walk(this, tree);
 		return this.result;
@@ -89,13 +88,11 @@ public class Checker extends GooseSpeakBaseListener {
 
 	@Override
 	public void exitProgram(ProgramContext ctx) {
-		if (!this.functionTable.hasVoidMain())
-			addError(ctx, "Program has no void main");
 		Map<String, Variable> globalVars = globalScope.getVariables();
 		for (String s : globalVars.keySet()) {
 			Variable v = globalVars.get(s);
-			// if(!v.isInitalized())
-			// addError(ctx, s + " is not initialized");
+			if (!v.isInitalized() && !(v.isArray() || v.isPointer()))
+				addError(ctx, s + " is not initialized");
 		}
 
 	}
@@ -227,7 +224,6 @@ public class Checker extends GooseSpeakBaseListener {
 		if (var == null) {
 			addError(ctx, id + " is not declared in this scope.");
 		}
-		// TODO strings/arrays?
 		Type[] acceptedTypes = { Type.Int, Type.Bool, Type.Char };
 
 		boolean isAccepted = false;
@@ -237,9 +233,10 @@ public class Checker extends GooseSpeakBaseListener {
 				break;
 			}
 		}
-		if (isAccepted)
+		if (isAccepted) {
+			var.setInitalized();
 			setVariable(ctx, var);
-		else
+		} else
 			addError(ctx, var.getType() + " is not accepted as a type for read");
 	}
 
@@ -257,7 +254,7 @@ public class Checker extends GooseSpeakBaseListener {
 		String id = ctx.ID().getText();
 		if (!symbolTable.add(id, type, true))
 			addError(ctx, id + " is already declared in this scope.");
-		else if (!checkType(type, getType(ctx.expr())))
+		else if (!checkType(type, getType(ctx.expr()))) 
 			addError(ctx, id + " is of type " + type + " but its right hand side is not.");
 		else {
 			Variable v = getDeclaredVariable(id);
@@ -278,6 +275,8 @@ public class Checker extends GooseSpeakBaseListener {
 					+ getType(ctx.expr()) + ".");
 		else if (checkType(var.getType(), Type.String))
 			var.setType(new Type.Array(getSize(ctx.expr()), Type.Char));
+		else if (var.getType().getKind() == TypeKind.Array)
+			((Type.Array) var.getType()).setSize(getSize(ctx.expr()));
 		var.setInitalized();
 		setVariable(ctx.ID(), var);
 	}
@@ -360,6 +359,7 @@ public class Checker extends GooseSpeakBaseListener {
 			return;
 		}
 		Function func = getFunction(parent);
+		setFunction(ctx, func);
 		if (type.equals(Type.Void))
 			addError(ctx, "Cannot return a call to a procedure");
 		else if (func.getReturnType().equals(Type.Void))
@@ -394,12 +394,12 @@ public class Checker extends GooseSpeakBaseListener {
 			addError(ctx, id + " is already declared in this scope.");
 		else {
 			Variable v = getDeclaredVariable(id);
-			// TODO proper exception
-			assert lastThreadId < Compiler.MAX_THREADS;
+			if (lastThreadId == Compiler.MAX_THREADS)
+				addError(ctx, "To many forks, a maximum of " + Compiler.MAX_THREADS + " is allowed");
 			v.setThreadId(lastThreadId);
 			lastThreadId++;
 			setVariable(ctx.ID(0), v);
-			checkFunction(ctx, ctx.ID(1).getText(), false);
+			checkFunction(ctx, ctx.ID(1).getText(), true);
 		}
 
 	}
@@ -435,16 +435,14 @@ public class Checker extends GooseSpeakBaseListener {
 	public void exitPrfExpr(PrfExprContext ctx) {
 		Type type = getType(ctx.expr());
 		if (ctx.prfOp().LEN() != null) {
-			if(type.getKind() != TypeKind.Array && type.getKind() != TypeKind.String)
+			if (type.getKind() != TypeKind.Array && type.getKind() != TypeKind.String)
 				addError(ctx, "expected an array type, but got " + type);
 			type = Type.Int;
-		}
-		else if (ctx.prfOp().STR() != null) {
-			if(!checkType(type, Type.Int))
+		} else if (ctx.prfOp().STR() != null) {
+			if (!checkType(type, Type.Int))
 				addError(ctx, "expected an integer type, but got " + type);
 			type = Type.String;
-		}
-		else if (ctx.prfOp().LOG_NOT() != null && !checkType(type, Type.Bool))
+		} else if (ctx.prfOp().LOG_NOT() != null && !checkType(type, Type.Bool))
 			addError(ctx, "Boolean operator on non-boolean expression");
 		else if (ctx.prfOp().BW_NOT() != null && !checkType(type, Type.Int))
 			addError(ctx, "Bitwise operator on non-integer expression");
@@ -539,15 +537,21 @@ public class Checker extends GooseSpeakBaseListener {
 				}
 			}
 			setType(ctx, new Type.Array(ctx.expr().size(), type));
+			this.arraySize.put(ctx, ctx.expr().size());
 		}
 	}
 
 	@Override
 	public void exitArrayElemExpr(ArrayElemExprContext ctx) {
 		Variable var = getDeclaredVariable(ctx.ID().getText());
+		if (var == null)
+			addError(ctx, "Variable " + ctx.ID().getText() + " is not declared.");
 		Type type = var.getType();
 		for (ArrayContext array : ctx.array()) {
-			type = ((Type.Array) type).getElemType();
+			if (type.getKind() != TypeKind.Array && type.getKind() != TypeKind.String)
+				addError(array, "Array element retrieval on variable that is not an array.");
+			else 
+				type = ((Type.Array) type).getElemType();
 			if (!checkType(getType(array.expr()), Type.Int))
 				addError(array, "Array element retrieval without integer.");
 		}
@@ -584,7 +588,7 @@ public class Checker extends GooseSpeakBaseListener {
 	@Override
 	public void exitStringExpr(StringExprContext ctx) {
 		int size = ctx.STRING_LIT().getText().length() - 2;
-		this.stringSize.put(ctx, size);
+		this.arraySize.put(ctx, size);
 		setType(ctx, new Type.Array(size, Type.Char));
 	}
 
@@ -631,7 +635,17 @@ public class Checker extends GooseSpeakBaseListener {
 						+ " is not defined.");
 			return;
 		}
+		// Fix for constants to pointer types in function call (e.g. Checker/Test18.goose)
+		if (args != null) 
+			for (int i = 0; i < args.expr().size(); i++) {
+				if (args.expr(i) instanceof NumExprContext || args.expr(i) instanceof BoolExprContext
+						|| args.expr(i) instanceof CharExprContext)
+					if (f.getArguments()[i] instanceof Type.Pointer)
+						addError(args.expr(i), "Call to pointer type with constant expressions");
+			}
 		Type returnType = f.getReturnType();
+		if (isThread && !returnType.equals(Type.Thread))
+			addError(ctx, "Calling a function but needed a thread");
 		setType(ctx, returnType);
 		setFunction(ctx, f);
 	}
@@ -650,13 +664,23 @@ public class Checker extends GooseSpeakBaseListener {
 			return parseType(((PointerTypeContext) ctx).PTRTYPE().getText());
 		} else if (ctx instanceof ArrayTypeContext) {
 			ArrayTypeContext arrayTypeCtx = (ArrayTypeContext) ctx;
-			int size = parseInt(errorList, ctx, arrayTypeCtx.NUM().getText());
-			if (size <= 0)
-				addError(errorList, ctx, "Array has invalid length");
+			int size = -1;
+			if (arrayTypeCtx.NUM() != null) {
+				size = parseInt(errorList, ctx, arrayTypeCtx.NUM().getText());
+				if (size < 0)
+					addError(errorList, ctx, "Array has invalid length");
+			}
 			Type type = parseType(errorList, arrayTypeCtx.type());
 			return new Type.Array(size, type);
 		} else
 			return null;
+	}
+
+	/**
+	 * Parses the TypeContext to a Type
+	 */
+	protected static Type parseType(List<String> errorList, FuncContext ctx) {
+		return parseType(ctx.BASICTYPE().getText());
 	}
 
 	/**
@@ -729,19 +753,6 @@ public class Checker extends GooseSpeakBaseListener {
 		return a.equals(b);
 	}
 
-	/**
-	 * Indication if the parent has already opened a scope
-	 * 
-	 * @param ctx
-	 *            The block statement context that opens a scope only when the
-	 *            parent has not opened a scope yet.
-	 * @return True when parent has opened a scope
-	 */
-	private boolean parentOpensScope(BlockStatContext ctx) {
-		return ctx.parent instanceof FuncContext || ctx.parent instanceof IfStatContext
-				|| ctx.parent instanceof WhileStatContext || ctx.parent instanceof ThreadDeclContext;
-	}
-
 	private void setType(ParseTree node, Type type) {
 		this.result.setType(node, type);
 	}
@@ -770,7 +781,7 @@ public class Checker extends GooseSpeakBaseListener {
 	}
 
 	private Integer getSize(ParseTree node) {
-		return this.stringSize.get(node);
+		return this.arraySize.get(node);
 	}
 
 	private void openScope() {
@@ -784,8 +795,8 @@ public class Checker extends GooseSpeakBaseListener {
 		for (String s : variables.keySet()) {
 			Variable v = variables.get(s);
 			v.setOffset(v.getOffset() + offset);
-			// if(!v.isInitalized())
-			// addError(ctx, s + " is not initialized");
+			if (!v.isInitalized() && !(v.isArray() || v.isPointer()))
+				addError(ctx, s + " is not initialized");
 		}
 		symbolTable.closeScope();
 	}

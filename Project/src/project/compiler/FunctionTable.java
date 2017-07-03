@@ -6,7 +6,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import project.antlr.GooseSpeakParser.ConcurrentDeclContext;
 import project.antlr.GooseSpeakParser.ThreadDeclContext;
 
 /**

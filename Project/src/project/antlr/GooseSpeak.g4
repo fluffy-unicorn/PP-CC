@@ -11,7 +11,7 @@ globalStat : type ID SEMI             #globalDeclStat
 		   ;
 		   
 /* Function declaration */
-func : FUNCTION (type | VOID) ID LBRACE argumentDecl? RBRACE stat;
+func : FUNCTION (BASICTYPE | VOID) ID LBRACE argumentDecl? RBRACE stat;
 
 /* Declaration of function variables */
 argumentDecl : type ID (COMMA type ID)*;
@@ -51,7 +51,7 @@ arguments : expr (COMMA expr)*;
 /* Different types */
 type : BASICTYPE                  #basicType
 	 | PTRTYPE 					  #pointerType
-	 | type LBRACKET NUM RBRACKET #arrayType
+	 | type LBRACKET NUM? RBRACKET #arrayType
 	 ;
 	 		  
 /* Expressions */
@@ -75,7 +75,7 @@ expr : prfOp expr        		    #prfExpr
      | LBRACE expr RBRACE		    #braceExpr
      ;
 
-/* Operators */ // TODO bitwise
+/* Operators */
 prfOp  : BW_NOT | LOG_NOT | LEN | STR;
 powerOp : POWER;
 multOp : MULT | DIV | MOD;

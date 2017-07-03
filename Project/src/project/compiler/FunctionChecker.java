@@ -1,6 +1,5 @@
 package project.compiler;
 
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,7 +18,7 @@ public class FunctionChecker extends GooseSpeakBaseVisitor<Function> {
 	private FunctionTable functionTable;
 	private List<String> errors;
 
-	public FunctionTable check(List<String> errors, ParseTree tree) throws ParseException {
+	public FunctionTable check(List<String> errors, ParseTree tree) {
 		this.functionTable = new FunctionTable();
 		this.errors = errors;
 		tree.accept(this);
@@ -47,6 +46,8 @@ public class FunctionChecker extends GooseSpeakBaseVisitor<Function> {
 				}
 			}
 		}
+		if (!this.functionTable.hasVoidMain())
+			Checker.addError(errors, ctx, "Program has no void main");
 		return null;
 	}
 
@@ -58,8 +59,8 @@ public class FunctionChecker extends GooseSpeakBaseVisitor<Function> {
 		if (argumentCtx != null)
 			for (TypeContext type : argumentCtx.type())
 				types.add(Checker.parseType(errors, type));
-		if (ctx.type() != null)
-			returnType = Checker.parseType(errors, ctx.type());
+		if (ctx.BASICTYPE() != null)
+			returnType = Checker.parseType(errors, ctx);
 		else
 			returnType = Type.Void;
 		return new Function(returnType, ctx.ID().getText(), types.toArray(new Type[0]));

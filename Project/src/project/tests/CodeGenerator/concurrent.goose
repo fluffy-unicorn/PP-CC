@@ -42,17 +42,7 @@ function void main() {
 # 	while(i < 10)
 #		i = i + 1;
 # }
-# Expected output:
-# At least from S -> E all the same sprockells
-# Sprockell 1 says S
-# Sprockell 1 says 0
-# Sprockell 1 says E
-# Sprockell 2 says S
-# Sprockell 2 says 100
-# Sprockell 2 says E
-# Sprockell 1 says S
-# Sprockell 1 says 50
-# Sprockell 1 says E
+
 
 
 

@@ -26,7 +26,5 @@ function int mult(int a, int b) {
 	}
 	return r;
 }
-# Expected output:
-# Sprockell 0 says 15
-# Sprockell 0 says 15
+
 

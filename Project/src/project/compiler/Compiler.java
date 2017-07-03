@@ -2,8 +2,6 @@ package project.compiler;
 
 import java.io.File;
 import java.io.IOException;
-import java.text.ParseException;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.antlr.v4.runtime.CharStream;
@@ -19,38 +17,51 @@ import project.sprockell.Program;
 
 public class Compiler {
 
+	/** Maximum number of threads */
 	public static final int MAX_THREADS = 4;
-	private static final boolean DEBUG = true;
+	/** Show debug messages */
+	private static final boolean DEBUG = false;
+	/** Default Haskell file extension */
 	private static final String EXT_HASKELL = ".hs";
+	/** Default GooseSpeak file extension */
 	private static final String EXT_GOOSESPEAK = ".goose";
 	private FunctionChecker functionChecker;
 	private Checker checker;
 	private Generator generator;
+	private ErrorListener errorListener;
 
-	private Program compile(String filename) throws ParseException, IOException {
+	private Program compile(String filename) throws IOException {
 		functionChecker = new FunctionChecker();
 		checker = new Checker();
 		generator = new Generator();
-		File file = new File(filename); // TODO file not exists error
+		errorListener = new ErrorListener();
+		File file = new File(filename); 
+		debugPrint("Starting lexer and parser");
 		ParseTree tree = parse(file);
-		List<String> errors = new ArrayList<>();
-		print("Starting function checker");
+		List<String> errors = errorListener.getErrors();
+		if (handleErrors(errors))
+			return null;
+		debugPrint("Starting function checker");
 		FunctionTable funcTable = this.functionChecker.check(errors, tree);
 		if (handleErrors(errors))
 			return null;
-		print("Starting checker");
+		debugPrint("Starting checker");
 		Result result = this.checker.check(errors, funcTable, tree);
 		if (handleErrors(errors))
 			return null;
-		print("Starting generator");
+		debugPrint("Starting generator");
 		Program program = this.generator.generate(tree, result);
 		return program;
 	}
 
+	/** 
+	 * Print errors to error output.
+	 * @param errors The list of errors
+	 * @return True when {@code errors.size() > 0}
+	 */
 	private boolean handleErrors(List<String> errors) {
 		if (errors.size() > 0) {
-			// TODO more beautiful
-			print("There were errors in the checker phase");
+			debugPrint("There were errors during compilation");
 			for (String error : errors)
 				System.err.println(error);
 			return true;
@@ -58,42 +69,63 @@ public class Compiler {
 		return false;
 	}
 
-	public void compileAndWrite(String filename) throws ParseException, IOException {
+	/**
+	 * Compile file and write to disk
+	 * @param filename Input filename. The output filename will strip the
+	 * default GooseSpeak (.goose) extension (if any) and append the default Haskell
+	 * (.hs) extension.
+	 * @throws IOException
+	 */
+	public void compileAndWrite(String filename) throws IOException {
 		compileAndWrite(filename, stripFilename(filename) + EXT_HASKELL);
 	}
 
-	public void compileAndWrite(String input, String output) throws ParseException, IOException {
-		print("Starting compiler on " + input);
+	/**
+	 * Compile file and write to disk
+	 * @param input Input filename
+	 * @param output Output filename
+	 * @throws IOException
+	 */
+	public void compileAndWrite(String input, String output) throws IOException {
+		debugPrint("Starting compiler on " + input);
 		Program program = compile(input);
 		if (program != null)
 			try {
 				program.writeToFile(output);
-				print("Succesfully written to " + output);
+				debugPrint("Succesfully written to " + output);
 			} catch (IOException e) {
 				System.err.println(e.getMessage());
 			}
 	}
 
-	private ParseTree parse(File file) throws ParseException, IOException {
+	/** Parse a file */
+	private ParseTree parse(File file) throws IOException {
 		return parse(CharStreams.fromPath(file.toPath()));
 	}
 
+	/** Parse a character stream */
+	private ParseTree parse(CharStream chars) {
+		Lexer lexer = new GooseSpeakLexer(chars);
+		lexer.removeErrorListeners();
+		lexer.addErrorListener(errorListener);
+		TokenStream tokens = new CommonTokenStream(lexer);
+		GooseSpeakParser parser = new GooseSpeakParser(tokens);
+		parser.removeErrorListeners();
+		parser.addErrorListener(errorListener);
+		ParseTree result = parser.program();
+		return result;
+	}
+
+	/** Strip the default GooseSpeak (.goose) extension (if any). */
 	private String stripFilename(String filename) {
 		int extIndex = filename.lastIndexOf(EXT_GOOSESPEAK);
 		if (extIndex != -1)
 			return filename.substring(0, extIndex);
 		return filename;
 	}
-
-	private ParseTree parse(CharStream chars) throws ParseException {
-		Lexer lexer = new GooseSpeakLexer(chars);
-		TokenStream tokens = new CommonTokenStream(lexer);
-		GooseSpeakParser parser = new GooseSpeakParser(tokens);
-		ParseTree result = parser.program();
-		return result;
-	}
-
-	private void print(String s) {
+	
+	/** Print only in debug mode */
+	private void debugPrint(String s) {
 		if (DEBUG)
 			System.out.println(s);
 	}

@@ -28,18 +28,3 @@ function void printArray(int[5] a) {
 		i = i + 1;
 	}
 }
-
-# Expected output:
-# Sprockell 0 says 3
-# Sprockell 0 says 1
-# Sprockell 0 says 2
-# Sprockell 0 says 3
-# Sprockell 0 says 1
-# Sprockell 0 says 4
-# Sprockell 0 says 9
-# Sprockell 0 says 1
-# Sprockell 0 says 2
-# Sprockell 0 says 3
-# Sprockell 0 says 4
-# Sprockell 0 says 5
-

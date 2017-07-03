@@ -25,11 +25,4 @@ function void change(bool*  b) {
 	b = true;
 }
 
-# Expected output:
-# Sprockell 0 says 5
-# Sprockell 0 says n
-# Sprockell 0 says false
-# Sprockell 0 says 7
-# Sprockell 0 says p
-# Sprockell 0 says true
 
